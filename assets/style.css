@@ -108,6 +108,19 @@ body {
   flex: 1;
 }
 
+/* ── Waveform plot loading overlay ───────────────────────────────────────────── */
+.plot-loading-spinner {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+}
+
+.plot-loading-overlay {
+    visibility: visible;
+    opacity: 0.4;
+    filter: blur(2px);
+}
+
 /* ── README / description panel ──────────────────────────── */
 .readme-details {
   margin-top: 24px;

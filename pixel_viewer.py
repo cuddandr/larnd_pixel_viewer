@@ -315,21 +315,35 @@ app.layout = html.Div(
                 html.Div(
                     className="plot-panel-left",
                     children=[
-                        dcc.Graph(
-                            id="pixel-map",
-                            style={"height": "78vh"},
-                            config={"scrollZoom": True, "displayModeBar": True,
-                                    "modeBarButtonsToRemove": ["select2d", "lasso2d"]},
+                        dcc.Loading(
+                            id="pix-map-loading",
+                            type="circle",
+                            color="#58a6ff",
+                            className="plot-loading-spinner",
+                            overlay_style={"opacity": 0.4, "filter": "blur(2px)"},
+                            children=dcc.Graph(
+                                id="pixel-map",
+                                style={"height": "78vh"},
+                                config={"scrollZoom": True, "displayModeBar": True,
+                                        "modeBarButtonsToRemove": ["select2d", "lasso2d"]},
+                            ),
                         ),
                     ],
                 ),
                 html.Div(
                     className="plot-panel-right",
                     children=[
-                        dcc.Graph(
-                            id="wave-plot",
-                            style={"height": "78vh"},
-                            config={"displayModeBar": True},
+                        dcc.Loading(
+                            id="wave-plot-loading",
+                            type="circle",
+                            color="#58a6ff",
+                            className="plot-loading-spinner",
+                            overlay_style={"opacity": 0.4, "filter": "blur(2px)"},
+                            children=dcc.Graph(
+                                id="wave-plot",
+                                style={"height": "78vh"},
+                                config={"displayModeBar": True},
+                            ),
                         ),
                     ],
                 ),
