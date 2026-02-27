@@ -8,8 +8,12 @@ Run:
 Then open http://127.0.0.1:8050 in your browser.
 """
 
-import os
+# System libs
+import argparse
 import glob
+import os
+
+# Package libs
 import numpy as np
 import dash
 from dash import dcc, html, Input, Output, State
@@ -19,6 +23,7 @@ from plotly.subplots import make_subplots
 # ──────────────────────────────────────────────
 # Config
 # ──────────────────────────────────────────────
+SIGNAL_DIR = os.getenv("SIGNAL_DIR", ".")
 PIXEL_PITCH = 3.72
 N_COLS, N_ROWS = 256, 800
 MAX_WAVEFORM_PTS = 2500   # downsample threshold
@@ -32,7 +37,6 @@ HIT_LINE_COLOR = "rgba(255, 210, 50, 0.85)"
 # README panel — load Markdown
 # ──────────────────────────────────────────────
 README_PATH = os.path.join(os.path.dirname(__file__), "readme_panel.md")
-
 
 def load_readme_md(path: str) -> dcc.Markdown:
     """Read a Markdown file and pass it directly to dcc.Markdown."""
@@ -58,7 +62,7 @@ def load_event(fname: str) -> dict:
 
 def find_npz_files() -> list:
     """Return sorted list of .npz files in the working directory."""
-    return sorted(glob.glob("*.npz"))
+    return sorted(glob.glob(os.path.join(SIGNAL_DIR, "*.npz")))
 
 
 # ──────────────────────────────────────────────
@@ -430,4 +434,25 @@ def update_waveform(pid, fname):
 
 # Run server
 if __name__ == "__main__":
-    app.run(debug=True, port=8050)
+
+    parser = argparse.ArgumentParser(description="Pixel Waveform Viewer")
+    parser.add_argument(
+        "--debug",
+        action="store_true",
+        default=False,
+        help="Run in debug mode (hot reload, verbose errors)",
+    )
+    parser.add_argument(
+        "--host",
+        default="127.0.0.1",
+        help="Host to bind to (default: 127.0.0.1; use 0.0.0.0 for containers)",
+    )
+    parser.add_argument(
+        "--port",
+        type=int,
+        default=8050,
+        help="Port to listen on (default: 8050)",
+    )
+    args = parser.parse_args()
+
+    app.run(debug=args.debug, host=args.host, port=args.port)
