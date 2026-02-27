@@ -3,7 +3,7 @@ Pixel Waveform Viewer — Dash App
 =================================
 Run:
     pip install dash plotly numpy
-    python pixel_waveform_viewer_dash.py
+    python pixel_viewer.py
 
 Then open http://127.0.0.1:8050 in your browser.
 """
@@ -27,6 +27,17 @@ TICK_US = 0.1             # each sample = 0.1 microsecond
 # Contrasting colour for hit marker lines (bright amber — visible against all
 # palette waveform colours which are blues/greens/reds/purples)
 HIT_LINE_COLOR = "rgba(255, 210, 50, 0.85)"
+
+# ──────────────────────────────────────────────
+# README panel — load Markdown
+# ──────────────────────────────────────────────
+README_PATH = os.path.join(os.path.dirname(__file__), "readme_panel.md")
+
+
+def load_readme_md(path: str) -> dcc.Markdown:
+    """Read a Markdown file and pass it directly to dcc.Markdown."""
+    with open(path, encoding="utf-8") as fh:
+        return dcc.Markdown(fh.read(), className="readme-body")
 
 # ──────────────────────────────────────────────
 # Data loading
@@ -74,23 +85,23 @@ def build_pixel_map(events, lookups, all_pixel_ids, xs, ys) -> go.Figure:
     ])
 
     fig = go.Figure(go.Scatter(
-    x=xs, y=ys,
-    mode="markers",
-    marker=dict(
-        size=8,
-        symbol="square",
-        color=current_ref,
-        colorscale="oranges",
-        colorbar=dict(title="max |I|", thickness=14),
-        line=dict(width=0),
-    ),
-    customdata=np.column_stack([all_pixel_ids, current_ref]),
-    hovertemplate=(
-        "Pixel %{customdata[0]:.0f}  "
-        "z=%{x:.1f} mm  "
-        "y=%{y:.1f} mm  "
-        "max_I=%{customdata[1]:.1f}"
-        "<extra></extra>"
+        x=xs, y=ys,
+        mode="markers",
+        marker=dict(
+            size=8,
+            symbol="square",
+            color=current_ref,
+            colorscale="oranges",
+            colorbar=dict(title="max |I|", thickness=14),
+            line=dict(width=0),
+        ),
+        customdata=np.column_stack([all_pixel_ids, current_ref]),
+        hovertemplate=(
+            "Pixel %{customdata[0]:.0f}  "
+            "z=%{x:.1f} mm  "
+            "y=%{y:.1f} mm  "
+            "max_I=%{customdata[1]:.1f}"
+            "<extra></extra>"
         ),
     ))
 
@@ -261,7 +272,7 @@ _initial_value = _initial_files[0] if _initial_files else None
 
 app.layout = html.Div(
     children=[
-        # ── Header ────────────────────────────────────────────
+        # Header
         html.Div(
             className="header",
             children=[
@@ -292,7 +303,7 @@ app.layout = html.Div(
             ],
         ),
 
-        # ── Two-panel plot layout ──────────────────────────────
+        # Two-panel plot layout
         html.Div(
             className="plot-panels",
             children=[
@@ -323,160 +334,10 @@ app.layout = html.Div(
         # README / description panel
         html.Details(
             open=True,
-            style={
-                "marginTop": "24px",
-                "border": "1px solid #21262d",
-                "borderRadius": "8px",
-                "overflow": "hidden",
-            },
+            className="readme-details",
             children=[
-                html.Summary(
-                    "ℹ️  About this viewer",
-                    style={
-                        "padding": "10px 16px",
-                        "backgroundColor": "#161b22",
-                        "cursor": "pointer",
-                        "fontSize": "0.9rem",
-                        "color": "#8b949e",
-                        "letterSpacing": "0.04em",
-                        "userSelect": "none",
-                        "listStyle": "none",
-                    },
-                ),
-                html.Div(
-                    style={
-                        "padding": "20px 28px",
-                        "backgroundColor": "#0d1117",
-                        "display": "grid",
-                        "gridTemplateColumns": "1fr 1fr",
-                        "gap": "24px 40px",
-                        "fontSize": "0.85rem",
-                        "lineHeight": "1.7",
-                        "color": "#c9d1d9",
-                    },
-                    children=[
-                        # ── Overview ──────────────────────────────
-                        html.Div(children=[
-                            html.H3("Overview",
-                                    style={"margin": "0 0 8px 0",
-                                           "fontSize": "0.95rem",
-                                           "color": "#58a6ff",
-                                           "borderBottom": "1px solid #21262d",
-                                           "paddingBottom": "6px"}),
-                            html.P(
-                                "This viewer displays induced-current and electronics "
-                                "waveforms from a pixel-based particle detector. "
-                                "Deposited charge drifts toward a pixel anode plane, "
-                                "inducing a current signal on each pixel. "
-                                "The front-end electronics integrate that current and "
-                                "record a hit once the accumulated charge crosses a "
-                                "configurable threshold; the integrated value is then "
-                                "digitised by an ADC.",
-                                style={"margin": 0},
-                            ),
-                        ]),
-
-                        # ── Pixel Map ─────────────────────────────
-                        html.Div(children=[
-                            html.H3("Pixel Map (left panel)",
-                                    style={"margin": "0 0 8px 0",
-                                           "fontSize": "0.95rem",
-                                           "color": "#58a6ff",
-                                           "borderBottom": "1px solid #21262d",
-                                           "paddingBottom": "6px"}),
-                            html.P([
-                                "Each square marker represents one pixel positioned at "
-                                "its physical (z, y) coordinates on the anode plane "
-                                f"(pixel pitch = {PIXEL_PITCH} mm). "
-                                "Colour encodes the ",
-                                html.Strong("peak absolute induced current",
-                                            style={"color": "#e6edf3"}),
-                                " for that pixel in the loaded event — brighter orange "
-                                "indicates a larger signal. "
-                                "Hover over a pixel to see its ID, position, and "
-                                "peak current. ",
-                                html.Strong("Click a pixel",
-                                            style={"color": "#e6edf3"}),
-                                " to load its waveforms in the right panel.",
-                            ], style={"margin": 0}),
-                        ]),
-
-                        # ── Waveform Panel ────────────────────────
-                        html.Div(children=[
-                            html.H3("Waveform Panel (right panel)",
-                                    style={"margin": "0 0 8px 0",
-                                           "fontSize": "0.95rem",
-                                           "color": "#58a6ff",
-                                           "borderBottom": "1px solid #21262d",
-                                           "paddingBottom": "6px"}),
-                            html.Ul(
-                                style={"margin": "0", "paddingLeft": "18px"},
-                                children=[
-                                    html.Li([
-                                        html.Strong("Pixel Signal — I (top):",
-                                                    style={"color": "#e6edf3"}),
-                                        "  Induced current on the pixel as a function "
-                                        "of time (e⁻/µs). Reflects the motion of "
-                                        "the drifting charge.",
-                                    ]),
-                                    html.Li([
-                                        html.Strong("True Charge — Q (middle):",
-                                                    style={"color": "#e6edf3"}),
-                                        "  True integrated charge recorded by "
-                                        "the electronics simulation (e⁻).",
-                                    ], style={"marginTop": "6px"}),
-                                    html.Li([
-                                        html.Strong("Reco Charge — Q (bottom):",
-                                                    style={"color": "#e6edf3"}),
-                                        "  Reconstructed integrated charge including "
-                                        "noise and signal processing (e⁻).",
-                                    ], style={"marginTop": "6px"}),
-                                ],
-                            ),
-                        ]),
-
-                        # ── Annotations ───────────────────────────
-                        html.Div(children=[
-                            html.H3("Annotations & Overlays",
-                                    style={"margin": "0 0 8px 0",
-                                           "fontSize": "0.95rem",
-                                           "color": "#58a6ff",
-                                           "borderBottom": "1px solid #21262d",
-                                           "paddingBottom": "6px"}),
-                            html.Ul(
-                                style={"margin": "0", "paddingLeft": "18px"},
-                                children=[
-                                    html.Li([
-                                        html.Span("━━",
-                                                  style={"color": "#42e0f5",
-                                                         "fontWeight": "bold"}),
-                                        html.Strong("  Dashed cyan trace:",
-                                                    style={"color": "#e6edf3"}),
-                                        "  Cumulative integral of the pixel signal "
-                                        "(sig_sum), shown on the True Q and Reco Q "
-                                        "subplots for comparison.",
-                                    ]),
-                                    html.Li([
-                                        html.Span("┄┄",
-                                                  style={"color": "rgba(255,210,50,0.85)",
-                                                         "fontWeight": "bold"}),
-                                        html.Strong("  Amber dotted lines:",
-                                                    style={"color": "#e6edf3"}),
-                                        "  ADC hit times — the moments in time at which the "
-                                        "electronics recorded a hit.",
-                                    ], style={"marginTop": "6px"}),
-                                    html.Li([
-                                        html.Strong("∫ badges:",
-                                                    style={"color": "#e6edf3"}),
-                                        "  Numerical time-integral of each waveform, "
-                                        "displayed in the top-left corner of each "
-                                        "subplot.",
-                                    ], style={"marginTop": "6px"}),
-                                ],
-                            ),
-                        ]),
-                    ],
-                ),
+                html.Summary("ℹ️  About this viewer"),
+                load_readme_md(README_PATH),
             ],
         ),
 

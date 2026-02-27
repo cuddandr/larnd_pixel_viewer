@@ -140,9 +140,6 @@ body {
 .readme-body {
   padding: 20px 28px;
   background-color: #0d1117;
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 24px 40px;
   font-size: 0.85rem;
   line-height: 1.7;
   color: #c9d1d9;
