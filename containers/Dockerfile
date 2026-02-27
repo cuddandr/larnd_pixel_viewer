@@ -9,4 +9,4 @@ RUN pip install --no-cache-dir --upgrade -r ${PIX}/requirements.txt
 EXPOSE 8050
 
 WORKDIR ${PIX}
-CMD ["python3", "pixel_viewer.py", "--host", "0.0.0.0"]
+CMD ["gunicorn", "pixel_viewer:server", "--bind", "0.0.0.0:8050", "--workers", "4"]

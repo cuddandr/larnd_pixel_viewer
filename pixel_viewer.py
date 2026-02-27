@@ -270,6 +270,7 @@ def build_wave_fig(pid: int, events, lookups) -> go.Figure:
 # Dash App
 # ──────────────────────────────────────────────
 app = dash.Dash(__name__, title="Pixel Waveform Viewer")
+server = app.server # For Gunicorn
 
 _initial_files = find_npz_files()
 _initial_value = _initial_files[0] if _initial_files else None
@@ -455,4 +456,5 @@ if __name__ == "__main__":
     )
     args = parser.parse_args()
 
+    # Start Dash App
     app.run(debug=args.debug, host=args.host, port=args.port)
