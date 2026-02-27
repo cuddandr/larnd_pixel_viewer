@@ -1,0 +1,184 @@
+/* ============================================================
+   Pixel Waveform Viewer — stylesheet
+   Dash serves everything in assets/ automatically.
+   ============================================================ */
+
+/* ── Base ─────────────────────────────────────────────────── */
+body {
+  background-color: #0d1117;
+  min-height: 100vh;
+  font-family: 'JetBrains Mono', 'Courier New', monospace;
+  color: #e6edf3;
+  margin: 0;
+  padding: 16px;
+  box-sizing: border-box;
+}
+
+/* ── Header bar ───────────────────────────────────────────── */
+.header {
+  border-bottom: 1px solid #21262d;
+  padding-bottom: 12px;
+  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  flex-wrap: wrap;
+}
+
+.header h1 {
+  margin: 0;
+  font-size: 1.4rem;
+  letter-spacing: 0.05em;
+  color: #58a6ff;
+}
+
+.file-info {
+  font-size: 0.8rem;
+  color: #8b949e;
+}
+
+/* ── File selector row ────────────────────────────────────── */
+.file-selector {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.file-selector label {
+  font-size: 0.85rem;
+  color: #8b949e;
+  white-space: nowrap;
+}
+
+/* Dash Dropdown overrides — Dash injects its own inline styles so we
+   need !important on a few properties to win the specificity battle. */
+.file-dropdown .Select-control,
+.file-dropdown .Select-menu-outer {
+  background-color: #161b22 !important;
+  border: 1px solid #30363d !important;
+  border-radius: 6px !important;
+  color: #e6edf3 !important;
+  font-family: 'JetBrains Mono', monospace !important;
+  font-size: 0.85rem !important;
+  min-width: 260px;
+}
+
+.file-dropdown .Select-value-label,
+.file-dropdown .Select-placeholder {
+  color: #e6edf3 !important;
+}
+
+.file-dropdown .Select-option {
+  background-color: #161b22 !important;
+  color: #e6edf3 !important;
+}
+
+.file-dropdown .Select-option.is-focused {
+  background-color: #21262d !important;
+}
+
+.refresh-btn {
+  background-color: #21262d;
+  color: #8b949e;
+  border: 1px solid #30363d;
+  border-radius: 6px;
+  padding: 4px 12px;
+  cursor: pointer;
+  font-size: 0.8rem;
+  font-family: inherit;
+}
+
+.refresh-btn:hover {
+  background-color: #30363d;
+  color: #e6edf3;
+}
+
+/* ── Two-panel plot layout ────────────────────────────────── */
+.plot-panels {
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+}
+
+.plot-panel-left {
+  flex: 0 0 46%;
+}
+
+.plot-panel-right {
+  flex: 1;
+}
+
+/* ── README / description panel ──────────────────────────── */
+.readme-details {
+  margin-top: 24px;
+  border: 1px solid #21262d;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.readme-details summary {
+  padding: 10px 16px;
+  background-color: #161b22;
+  cursor: pointer;
+  font-size: 0.9rem;
+  color: #8b949e;
+  letter-spacing: 0.04em;
+  user-select: none;
+  list-style: none;               /* hide default triangle in Firefox  */
+}
+
+/* Hide the default disclosure triangle in WebKit/Blink */
+.readme-details summary::-webkit-details-marker {
+  display: none;
+}
+
+.readme-details summary:hover {
+  color: #e6edf3;
+  background-color: #21262d;
+}
+
+.readme-body {
+  padding: 20px 28px;
+  background-color: #0d1117;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px 40px;
+  font-size: 0.85rem;
+  line-height: 1.7;
+  color: #c9d1d9;
+}
+
+/* ── README section headings ──────────────────────────────── */
+.readme-section h3 {
+  margin: 0 0 8px 0;
+  font-size: 0.95rem;
+  color: #58a6ff;
+  border-bottom: 1px solid #21262d;
+  padding-bottom: 6px;
+}
+
+.readme-section p {
+  margin: 0;
+}
+
+.readme-section ul {
+  margin: 0;
+  padding-left: 18px;
+}
+
+.readme-section li {
+  margin-top: 6px;
+}
+
+.readme-section li:first-child {
+  margin-top: 0;
+}
+
+/* Inline highlight for strong/keyword text inside the README */
+.readme-section strong {
+  color: #e6edf3;
+}
+
+/* Coloured annotation legend glyphs */
+.glyph-cyan   { color: #42e0f5;              font-weight: bold; }
+.glyph-amber  { color: rgba(255,210,50,0.85); font-weight: bold; }

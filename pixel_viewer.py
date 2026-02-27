@@ -256,87 +256,48 @@ def build_wave_fig(pid: int, events, lookups) -> go.Figure:
 # ──────────────────────────────────────────────
 app = dash.Dash(__name__, title="Pixel Waveform Viewer")
 
-DROPDOWN_STYLE = dict(
-    backgroundColor="#161b22",
-    color="#e6edf3",
-    border="1px solid #30363d",
-    borderRadius="6px",
-    fontFamily="'JetBrains Mono', monospace",
-    fontSize="0.85rem",
-)
-
 _initial_files = find_npz_files()
 _initial_value = _initial_files[0] if _initial_files else None
 
 app.layout = html.Div(
-    style={
-        "backgroundColor": "#0d1117",
-        "minHeight": "100vh",
-        "fontFamily": "'JetBrains Mono', 'Courier New', monospace",
-        "color": "#e6edf3",
-        "padding": "16px",
-    },
     children=[
-        # Header
+        # ── Header ────────────────────────────────────────────
         html.Div(
-            style={
-                "borderBottom": "1px solid #21262d",
-                "paddingBottom": "12px",
-                "marginBottom": "16px",
-                "display": "flex",
-                "alignItems": "center",
-                "gap": "24px",
-                "flexWrap": "wrap",
-            },
+            className="header",
             children=[
                 html.Div(children=[
-                    html.H1("Pixel Waveform Viewer",
-                            style={"margin": 0, "fontSize": "1.4rem",
-                                   "letterSpacing": "0.05em", "color": "#58a6ff"}),
-                    html.Span(id="file-info",
-                              style={"fontSize": "0.8rem", "color": "#8b949e"}),
+                    html.H1("Pixel Waveform Viewer"),
+                    html.Span(id="file-info", className="file-info"),
                 ]),
 
-                # File selector row
                 html.Div(
-                    style={"display": "flex", "alignItems": "center", "gap": "10px"},
+                    className="file-selector",
                     children=[
-                        html.Label("File:",
-                                   style={"fontSize": "0.85rem", "color": "#8b949e",
-                                          "whiteSpace": "nowrap"}),
+                        html.Label("File:"),
                         dcc.Dropdown(
                             id="file-dropdown",
+                            className="file-dropdown",
                             options=[{"label": f, "value": f} for f in _initial_files],
                             value=_initial_value,
                             clearable=False,
-                            style={**DROPDOWN_STYLE, "minWidth": "260px"},
                         ),
                         html.Button(
                             "⟳ Refresh",
                             id="refresh-btn",
                             n_clicks=0,
-                            style={
-                                "backgroundColor": "#21262d",
-                                "color": "#8b949e",
-                                "border": "1px solid #30363d",
-                                "borderRadius": "6px",
-                                "padding": "4px 12px",
-                                "cursor": "pointer",
-                                "fontSize": "0.8rem",
-                                "fontFamily": "inherit",
-                            },
+                            className="refresh-btn",
                         ),
                     ],
                 ),
             ],
         ),
 
-        # Main two-panel layout
+        # ── Two-panel plot layout ──────────────────────────────
         html.Div(
-            style={"display": "flex", "gap": "16px", "alignItems": "flex-start"},
+            className="plot-panels",
             children=[
                 html.Div(
-                    style={"flex": "0 0 46%"},
+                    className="plot-panel-left",
                     children=[
                         dcc.Graph(
                             id="pixel-map",
@@ -347,7 +308,7 @@ app.layout = html.Div(
                     ],
                 ),
                 html.Div(
-                    style={"flex": "1"},
+                    className="plot-panel-right",
                     children=[
                         dcc.Graph(
                             id="wave-plot",
