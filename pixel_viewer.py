@@ -359,6 +359,166 @@ app.layout = html.Div(
             ],
         ),
 
+        # README / description panel
+        html.Details(
+            open=True,
+            style={
+                "marginTop": "24px",
+                "border": "1px solid #21262d",
+                "borderRadius": "8px",
+                "overflow": "hidden",
+            },
+            children=[
+                html.Summary(
+                    "ℹ️  About this viewer",
+                    style={
+                        "padding": "10px 16px",
+                        "backgroundColor": "#161b22",
+                        "cursor": "pointer",
+                        "fontSize": "0.9rem",
+                        "color": "#8b949e",
+                        "letterSpacing": "0.04em",
+                        "userSelect": "none",
+                        "listStyle": "none",
+                    },
+                ),
+                html.Div(
+                    style={
+                        "padding": "20px 28px",
+                        "backgroundColor": "#0d1117",
+                        "display": "grid",
+                        "gridTemplateColumns": "1fr 1fr",
+                        "gap": "24px 40px",
+                        "fontSize": "0.85rem",
+                        "lineHeight": "1.7",
+                        "color": "#c9d1d9",
+                    },
+                    children=[
+                        # ── Overview ──────────────────────────────
+                        html.Div(children=[
+                            html.H3("Overview",
+                                    style={"margin": "0 0 8px 0",
+                                           "fontSize": "0.95rem",
+                                           "color": "#58a6ff",
+                                           "borderBottom": "1px solid #21262d",
+                                           "paddingBottom": "6px"}),
+                            html.P(
+                                "This viewer displays induced-current and electronics "
+                                "waveforms from a pixel-based particle detector. "
+                                "Deposited charge drifts toward a pixel anode plane, "
+                                "inducing a current signal on each pixel. "
+                                "The front-end electronics integrate that current and "
+                                "record a hit once the accumulated charge crosses a "
+                                "configurable threshold; the integrated value is then "
+                                "digitised by an ADC.",
+                                style={"margin": 0},
+                            ),
+                        ]),
+
+                        # ── Pixel Map ─────────────────────────────
+                        html.Div(children=[
+                            html.H3("Pixel Map (left panel)",
+                                    style={"margin": "0 0 8px 0",
+                                           "fontSize": "0.95rem",
+                                           "color": "#58a6ff",
+                                           "borderBottom": "1px solid #21262d",
+                                           "paddingBottom": "6px"}),
+                            html.P([
+                                "Each square marker represents one pixel positioned at "
+                                "its physical (z, y) coordinates on the anode plane "
+                                f"(pixel pitch = {PIXEL_PITCH} mm). "
+                                "Colour encodes the ",
+                                html.Strong("peak absolute induced current",
+                                            style={"color": "#e6edf3"}),
+                                " for that pixel in the loaded event — brighter orange "
+                                "indicates a larger signal. "
+                                "Hover over a pixel to see its ID, position, and "
+                                "peak current. ",
+                                html.Strong("Click a pixel",
+                                            style={"color": "#e6edf3"}),
+                                " to load its waveforms in the right panel.",
+                            ], style={"margin": 0}),
+                        ]),
+
+                        # ── Waveform Panel ────────────────────────
+                        html.Div(children=[
+                            html.H3("Waveform Panel (right panel)",
+                                    style={"margin": "0 0 8px 0",
+                                           "fontSize": "0.95rem",
+                                           "color": "#58a6ff",
+                                           "borderBottom": "1px solid #21262d",
+                                           "paddingBottom": "6px"}),
+                            html.Ul(
+                                style={"margin": "0", "paddingLeft": "18px"},
+                                children=[
+                                    html.Li([
+                                        html.Strong("Pixel Signal — I (top):",
+                                                    style={"color": "#e6edf3"}),
+                                        "  Induced current on the pixel as a function "
+                                        "of time (e⁻/µs). Reflects the motion of "
+                                        "the drifting charge.",
+                                    ]),
+                                    html.Li([
+                                        html.Strong("True Charge — Q (middle):",
+                                                    style={"color": "#e6edf3"}),
+                                        "  True integrated charge recorded by "
+                                        "the electronics simulation (e⁻).",
+                                    ], style={"marginTop": "6px"}),
+                                    html.Li([
+                                        html.Strong("Reco Charge — Q (bottom):",
+                                                    style={"color": "#e6edf3"}),
+                                        "  Reconstructed integrated charge including "
+                                        "noise and signal processing (e⁻).",
+                                    ], style={"marginTop": "6px"}),
+                                ],
+                            ),
+                        ]),
+
+                        # ── Annotations ───────────────────────────
+                        html.Div(children=[
+                            html.H3("Annotations & Overlays",
+                                    style={"margin": "0 0 8px 0",
+                                           "fontSize": "0.95rem",
+                                           "color": "#58a6ff",
+                                           "borderBottom": "1px solid #21262d",
+                                           "paddingBottom": "6px"}),
+                            html.Ul(
+                                style={"margin": "0", "paddingLeft": "18px"},
+                                children=[
+                                    html.Li([
+                                        html.Span("━━",
+                                                  style={"color": "#42e0f5",
+                                                         "fontWeight": "bold"}),
+                                        html.Strong("  Dashed cyan trace:",
+                                                    style={"color": "#e6edf3"}),
+                                        "  Cumulative integral of the pixel signal "
+                                        "(sig_sum), shown on the True Q and Reco Q "
+                                        "subplots for comparison.",
+                                    ]),
+                                    html.Li([
+                                        html.Span("┄┄",
+                                                  style={"color": "rgba(255,210,50,0.85)",
+                                                         "fontWeight": "bold"}),
+                                        html.Strong("  Amber dotted lines:",
+                                                    style={"color": "#e6edf3"}),
+                                        "  ADC hit times — the moments in time at which the "
+                                        "electronics recorded a hit.",
+                                    ], style={"marginTop": "6px"}),
+                                    html.Li([
+                                        html.Strong("∫ badges:",
+                                                    style={"color": "#e6edf3"}),
+                                        "  Numerical time-integral of each waveform, "
+                                        "displayed in the top-left corner of each "
+                                        "subplot.",
+                                    ], style={"marginTop": "6px"}),
+                                ],
+                            ),
+                        ]),
+                    ],
+                ),
+            ],
+        ),
+
         # Stores
         dcc.Store(id="selected-pixel", data=None),
         dcc.Store(id="loaded-file",    data=None),
