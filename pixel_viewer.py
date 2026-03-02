@@ -19,6 +19,18 @@ import dash
 from dash import dcc, html, Input, Output, State
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
+from flask_caching import Cache
+
+# ──────────────────────────────────────────────
+# Dash declaration
+# ──────────────────────────────────────────────
+app = dash.Dash(__name__, title="Pixel Waveform Viewer")
+# Cache for signal files
+cache = Cache(app.server, config={
+    "CACHE_TYPE": "SimpleCache",   # in-memory, per-process
+    "CACHE_DEFAULT_TIMEOUT": 300,  # seconds
+})
+server = app.server # For Gunicorn
 
 # ──────────────────────────────────────────────
 # Config
@@ -29,11 +41,10 @@ N_COLS, N_ROWS = 256, 800
 MAX_WAVEFORM_PTS = 2500   # downsample threshold
 TICK_US = 0.1             # each sample = 0.1 microsecond
 
-# Waveform line colour
+# Waveform line color (blue)
 WAVE_COLOR = "#58a6ff"
 
-# Contrasting colour for hit marker lines (bright amber — visible against all
-# palette waveform colours which are blues/greens/reds/purples)
+# Contrasting color for hit marker lines (bright amber)
 HIT_LINE_COLOR = "rgba(255, 210, 50, 0.85)"
 
 # ──────────────────────────────────────────────
@@ -49,6 +60,7 @@ def load_readme_md(path: str) -> dcc.Markdown:
 # ──────────────────────────────────────────────
 # Data loading
 # ──────────────────────────────────────────────
+@cache.memoize() #from flask_cache
 def load_event(fname: str) -> dict:
     data = np.load(fname, allow_pickle=True)
     return {
@@ -253,11 +265,8 @@ def build_wave_fig(pid: int, ev: dict, lut: dict) -> go.Figure:
     return fig
 
 # ──────────────────────────────────────────────
-# Dash App
+# Dash App Layout
 # ──────────────────────────────────────────────
-app = dash.Dash(__name__, title="Pixel Waveform Viewer")
-server = app.server # For Gunicorn
-
 _initial_files = find_npz_files()
 _initial_value = _initial_files[0] if _initial_files else None
 
