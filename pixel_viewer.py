@@ -29,6 +29,9 @@ N_COLS, N_ROWS = 256, 800
 MAX_WAVEFORM_PTS = 2500   # downsample threshold
 TICK_US = 0.1             # each sample = 0.1 microsecond
 
+# Waveform line colour
+WAVE_COLOR = "#58a6ff"
+
 # Contrasting colour for hit marker lines (bright amber — visible against all
 # palette waveform colours which are blues/greens/reds/purples)
 HIT_LINE_COLOR = "rgba(255, 210, 50, 0.85)"
@@ -80,11 +83,10 @@ def ds_array(arr: np.ndarray):
 # ──────────────────────────────────────────────
 # Pixel-map figure
 # ──────────────────────────────────────────────
-def build_pixel_map(events, lookups, all_pixel_ids, xs, ys) -> go.Figure:
-    ref_lut = lookups[0]
+def build_pixel_map(ev: dict, lut: dict, all_pixel_ids, xs, ys) -> go.Figure:
     current_ref = np.array([
-        np.max(np.abs(events[0]["pixels_signals"][ref_lut[int(pid)]]))
-        if int(pid) in ref_lut else 0.0
+        np.max(np.abs(ev["pixels_signals"][lut[int(pid)]]))
+        if int(pid) in lut else 0.0
         for pid in all_pixel_ids
     ])
 
@@ -129,20 +131,15 @@ def build_pixel_map(events, lookups, all_pixel_ids, xs, ys) -> go.Figure:
 SUBPLOT_TITLES  = ("Pixel Signal (pixels_signals)", "True Charge (true_qs)", "Reco Charge (qs)")
 SUBPLOT_YLABELS = ("Current (e-/&mu;s)", "True Q (e-)", "Reco Q (e-)")
 
-PALETTE = [
-    "#58a6ff", "#3fb950", "#f78166", "#d2a8ff",
-    "#ffa657", "#79c0ff", "#56d364", "#ff7b72",
-]
 
-
-def _style_wave_fig(fig: go.Figure, title: str, n_events: int):
+def _style_wave_fig(fig: go.Figure, title: str):
     fig.update_layout(
         title=dict(text=title, font=dict(size=14)),
         paper_bgcolor="#0d1117",
         plot_bgcolor="#0d1117",
         font=dict(color="#e6edf3", family="'JetBrains Mono', monospace"),
         margin=dict(l=60, r=20, t=70, b=40),
-        showlegend=n_events > 1,
+        showlegend=False,
         legend=dict(bgcolor="#161b22", bordercolor="#30363d", borderwidth=1),
     )
     axis_style = dict(gridcolor="#21262d", zeroline=False, linecolor="#30363d")
@@ -155,108 +152,97 @@ def _style_wave_fig(fig: go.Figure, title: str, n_events: int):
     fig.layout["xaxis3"].title = "Time (&mu;s)"
 
 
-def empty_wave_fig(n_events: int = 1) -> go.Figure:
+def empty_wave_fig() -> go.Figure:
     fig = make_subplots(rows=3, cols=1, shared_xaxes=True,
                         subplot_titles=SUBPLOT_TITLES, vertical_spacing=0.08)
     for row in range(1, 4):
-        for _ in range(n_events):
-            fig.add_trace(go.Scatter(x=[], y=[], mode="lines"), row=row, col=1)
-    _style_wave_fig(fig, "Select a pixel", n_events)
+        fig.add_trace(go.Scatter(x=[], y=[], mode="lines"), row=row, col=1)
+    _style_wave_fig(fig, "Select a pixel")
     return fig
 
 
-def build_wave_fig(pid: int, events, lookups) -> go.Figure:
+def build_wave_fig(pid: int, ev: dict, lut: dict) -> go.Figure:
     fig = make_subplots(rows=3, cols=1, shared_xaxes=True,
                         subplot_titles=SUBPLOT_TITLES, vertical_spacing=0.08)
 
     keys_rows = [
-        ("pixels_signals", 1, None,       None,     True),
-        ("true_qs",        2, None,       None,     True),
-        ("sig_sum",        2, "sig_sum",  dict(color="#42e0f5", dash="dash", width=1.2), False),
-        ("qs",             3, None,       None,     True),
-        ("sig_sum",        3, "sig_sum",  dict(color="#42e0f5", dash="dash", width=1.2), False),
+        ("pixels_signals", 1, None,      None,                                          True),
+        ("true_qs",        2, None,      None,                                          True),
+        ("sig_sum",        2, "sig_sum", dict(color="#42e0f5", dash="dash", width=1.2), False),
+        ("qs",             3, None,      None,                                          True),
+        ("sig_sum",        3, "sig_sum", dict(color="#42e0f5", dash="dash", width=1.2), False),
     ]
     xref_names = ["x", "x2", "x3"]
     yref_names = ["y domain", "y2 domain", "y3 domain"]
-
     yref_annot = ["y", "y2", "y3"]
+
     shapes      = []
     annotations = []
 
-    for ev_idx, (ev, lut) in enumerate(zip(events, lookups)):
-        color = PALETTE[ev_idx % len(PALETTE)]
-        name  = ev["name"]
+    if int(pid) in lut:
+        row_i = lut[int(pid)]
 
-        if int(pid) in lut:
-            row_i = lut[int(pid)]
+        raw_ticks    = ev["adc_ticks_list"][row_i]
+        hit_times_us = np.asarray(raw_ticks).ravel()
+        hit_times_us = hit_times_us[hit_times_us != 0]
 
-            raw_ticks    = ev["adc_ticks_list"][row_i]
-            hit_times_us = np.asarray(raw_ticks).ravel()
-            hit_times_us = hit_times_us[hit_times_us != 0]
+        for key, row, label, line_override, show_integral in keys_rows:
+            arr  = ev[key][row_i]
+            x, y = ds_array(arr)
 
-            for key, row, label, line_override, show_integral in keys_rows:
-                arr  = ev[key][row_i]
-                x, y = ds_array(arr)
+            line_style = dict(color=WAVE_COLOR, width=1.5)
+            if line_override:
+                line_style.update(line_override)
 
-                line_style = dict(color=color, width=1.5)
-                if line_override:
-                    line_style.update(line_override)
+            fig.add_trace(
+                go.Scatter(
+                    x=x, y=y,
+                    mode="lines",
+                    name=label if label else ev["name"],
+                    showlegend=False,
+                    line=line_style,
+                ),
+                row=row, col=1,
+            )
 
-                trace_name = label if label else name
+            if show_integral:
+                integral = float(np.trapezoid(ev[key][row_i], dx=TICK_US))
+                annotations.append(dict(
+                    xref="paper",
+                    yref=f"{yref_annot[row - 1]} domain",
+                    x=0.15,
+                    y=0.97,
+                    xanchor="right",
+                    yanchor="top",
+                    text=f"∫ = {integral:.3g}",
+                    showarrow=False,
+                    font=dict(size=12, color=WAVE_COLOR,
+                              family="'JetBrains Mono', monospace"),
+                    bgcolor="rgba(13,17,23,0.7)",
+                    bordercolor=WAVE_COLOR,
+                    borderwidth=1,
+                    borderpad=3,
+                ))
 
-                # Waveform traces
-                fig.add_trace(
-                    go.Scatter(
-                        x=x, y=y,
-                        mode="lines",
-                        name=trace_name,
-                        legendgroup=trace_name,
-                        showlegend=(row == 1 or label is not None),
-                        line=line_style,
-                    ),
-                    row=row, col=1,
-                )
+        # Vertical hit markers
+        for t in hit_times_us:
+            for xref, yref in zip(xref_names, yref_names):
+                shapes.append(dict(
+                    type="line",
+                    xref=xref, yref=yref,
+                    x0=t, x1=t,
+                    y0=0, y1=1,
+                    line=dict(color=HIT_LINE_COLOR, width=1.3, dash="dot"),
+                ))
+    else:
+        for _, row, *_ in keys_rows:
+            fig.add_trace(
+                go.Scatter(x=[], y=[], mode="lines", showlegend=False,
+                           line=dict(color=WAVE_COLOR)),
+                row=row, col=1,
+            )
 
-                if show_integral:
-                    integral = float(np.trapezoid(ev[key][row_i], dx=TICK_US))
-                    y_offset = 0.97 - ev_idx * 0.07
-                    annotations.append(dict(
-                        xref="paper",
-                        yref=f"{yref_annot[row - 1]} domain",
-                        x=0.15,
-                        y=y_offset,
-                        xanchor="right",
-                        yanchor="top",
-                        text=f"∫ = {integral:.3g}",
-                        showarrow=False,
-                        font=dict(size=12, color=color,
-                                  family="'JetBrains Mono', monospace"),
-                        bgcolor="rgba(13,17,23,0.7)",
-                        bordercolor=color,
-                        borderwidth=1,
-                        borderpad=3,
-                    ))
-
-            # Vertical hit markers
-            for t in hit_times_us:
-                for xref, yref in zip(xref_names, yref_names):
-                    shapes.append(dict(
-                        type="line",
-                        xref=xref, yref=yref,
-                        x0=t, x1=t,
-                        y0=0, y1=1,
-                        line=dict(color=HIT_LINE_COLOR, width=1.3, dash="dot"),
-                    ))
-        else:
-            for _, row in keys_rows:
-                fig.add_trace(
-                    go.Scatter(x=[], y=[], mode="lines", name=name,
-                               legendgroup=name, showlegend=False,
-                               line=dict(color=color)),
-                    row=row, col=1,
-                )
-
-    _style_wave_fig(fig, f"Waveforms for Pixel {pid}", len(events))
+    _style_wave_fig(fig, f"Waveforms for Pixel {pid}")
     layout_updates = {}
     if shapes:
         layout_updates["shapes"] = shapes
@@ -398,18 +384,17 @@ def load_file(fname):
                             font=dict(color="#e6edf3"))
         return blank, empty_wave_fig(), "No file selected", None, None
 
-    ev      = load_event(fname)
-    events  = [ev]
-    lookups = [{int(pid): i for i, pid in enumerate(ev["pixel_ids"])}]
+    ev  = load_event(fname)
+    lut = {int(pid): i for i, pid in enumerate(ev["pixel_ids"])}
 
     all_pids = np.unique(ev["pixel_ids"])
     xs = (all_pids % N_COLS) * PIXEL_PITCH
     ys = (all_pids // N_COLS) * PIXEL_PITCH
 
-    pmap = build_pixel_map(events, lookups, all_pids, xs, ys)
+    pmap = build_pixel_map(ev, lut, all_pids, xs, ys)
     info = f"{fname}  ·  {len(all_pids)} pixels"
 
-    return pmap, empty_wave_fig(len(events)), info, fname, None
+    return pmap, empty_wave_fig(), info, fname, None
 
 
 # 3. Pixel click: store pixel id
@@ -441,10 +426,9 @@ def store_click(click_data, fname):
 def update_waveform(pid, fname):
     if pid is None or fname is None:
         return empty_wave_fig()
-    ev      = load_event(fname)
-    events  = [ev]
-    lookups = [{int(p): i for i, p in enumerate(ev["pixel_ids"])}]
-    return build_wave_fig(pid, events, lookups)
+    ev  = load_event(fname)
+    lut = {int(p): i for i, p in enumerate(ev["pixel_ids"])}
+    return build_wave_fig(pid, ev, lut)
 
 
 # Run server
