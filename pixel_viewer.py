@@ -44,8 +44,8 @@ TICK_US = 0.1             # each sample = 0.1 microsecond
 # Waveform line color (blue)
 WAVE_COLOR = "#58a6ff"
 
-# Contrasting color for hit marker lines (bright amber)
-HIT_LINE_COLOR = "rgba(255, 210, 50, 0.85)"
+# Contrasting color for hit marker lines (amber)
+HIT_LINE_COLOR = "rgba(255, 196, 16, 0.85)"
 
 # ──────────────────────────────────────────────
 # README panel — load Markdown
@@ -90,6 +90,113 @@ def ds_array(arr: np.ndarray):
     y = arr[::step].tolist()
     x = [i * step * TICK_US for i in range(len(y))]
     return x, y
+
+# ──────────────────────────────────────────────
+# Digitize and charge/energy conversion of integral_list
+# ──────────────────────────────────────────────
+
+ADC_COUNTS = 2**8
+VREF = 1504.2 # mV; FSD data value
+VCM  = 458.7  # mV; FSD data value
+VPED = 580.0  # mV; default value in larnd-sim
+GAIN = 2.46   # mV/ke-; FSD data value
+
+birks_A = 0.800
+birks_k = 0.0486
+e_field = 0.50
+lar_rho = 1.38
+w_ion = 23.6e-6
+dEdx = 2.0
+
+anode_offset = 20.0 #cm
+v_drift = 0.1596 #cm/us
+e_life  = 2200.0 #us
+t_drift = anode_offset / v_drift
+
+def process_integral_list(arr: np.ndarray):
+    # Digitization to ADC value
+    dataword = np.floor(np.minimum(np.maximum(arr * GAIN * 1.e-3 + VPED - VCM, 0)
+                                * ADC_COUNTS / (VREF - VCM), ADC_COUNTS-1))
+
+    # Conversion back to charge
+    charge = (dataword / ADC_COUNTS * (VREF - VCM) + VCM - VPED) / GAIN
+    charge /= np.exp(-t_drift / e_life)
+
+    # Conversion to energy assuming MIPs
+    recomb = birks_A / (1 + birks_k * dEdx / (e_field * lar_rho))
+    energy = (charge * 1000) / recomb * w_ion
+
+    return dataword, charge, energy
+
+# ──────────────────────────────────────────────
+# Histogram panel figure
+# ──────────────────────────────────────────────
+HIST_TITLES = (
+    "Hit ADC Values",
+    "Hit Charge",
+    "Hit Energy",
+)
+HIST_ACCENT_COLORS = ["#58a6ff", "#fcba04", "#d81159"]
+
+def build_hist_fig(ev: dict | None) -> go.Figure:
+    """Three-column histogram panel from integral_list, ignoring zeros."""
+
+    fig = make_subplots(
+        rows=1, cols=3,
+        subplot_titles=HIST_TITLES,
+        horizontal_spacing=0.07,
+    )
+
+    if ev is not None:
+        raw = np.asarray(ev["integral_list"]).ravel()
+        vals = raw[raw != 0]
+    else:
+        vals = np.array([])
+    hist_data = process_integral_list(vals)
+
+    for col, (data, color) in enumerate(zip(hist_data, HIST_ACCENT_COLORS), start=1):
+        if len(data):
+            fig.add_trace(
+                go.Histogram(
+                    x=data,
+                    marker=dict(
+                        color=color,
+                        opacity=0.75,
+                        line=dict(color="#0d1117", width=0.4),
+                    ),
+                    showlegend=False,
+                    hovertemplate="Value: %{x}<br>Count: %{y}<extra></extra>",
+                ),
+                row=1, col=col,
+            )
+        else:
+            # Empty placeholder trace
+            fig.add_trace(
+                go.Histogram(x=[], marker=dict(color=color), showlegend=False),
+                row=1, col=col,
+            )
+
+    fig.update_layout(
+        paper_bgcolor="#0d1117",
+        plot_bgcolor="#0d1117",
+        font=dict(color="#e6edf3", family="'JetBrains Mono', monospace"),
+        margin=dict(l=20, r=20, t=50, b=40),
+        height=260,
+    )
+    axis_style = dict(gridcolor="#21262d", zeroline=False, linecolor="#30363d")
+    for key in list(fig.layout):
+        if key.startswith("xaxis") or key.startswith("yaxis"):
+            fig.layout[key].update(**axis_style)
+    fig.layout["xaxis"].title  = "ADC value"
+    fig.layout["xaxis2"].title = "Charge (ke-)"
+    fig.layout["xaxis3"].title = "Energy (MeV)"
+    fig.layout["yaxis"].title  = "Count"
+
+    return fig
+
+
+def empty_hist_fig() -> go.Figure:
+    return build_hist_fig(None)
 
 
 # ──────────────────────────────────────────────
@@ -345,6 +452,31 @@ app.layout = html.Div(
             ],
         ),
 
+        # Histogram panel
+        html.Div(
+            style={"marginTop": "16px"},
+            children=[
+                html.Div(
+                    style={
+                        "fontSize": "1.0rem",
+                        "color": "#8b949e",
+                        "marginBottom": "4px",
+                        "letterSpacing": "0.04em",
+                    },
+                    children="Pixel Hit Distributions",
+                ),
+                dcc.Loading(
+                    type="circle",
+                    color="#58a6ff",
+                    children=dcc.Graph(
+                        id="hist-plot",
+                        config={"displayModeBar": False},
+                        figure=empty_hist_fig(),
+                    ),
+                ),
+            ],
+        ),
+
         # README / description panel
         html.Details(
             open=True,
@@ -381,6 +513,7 @@ def refresh_file_list(_):
 @app.callback(
     Output("pixel-map",      "figure"),
     Output("wave-plot",      "figure"),
+    Output("hist-plot",      "figure"),
     Output("file-info",      "children"),
     Output("loaded-file",    "data"),
     Output("selected-pixel", "data"),
@@ -391,7 +524,7 @@ def load_file(fname):
         blank = go.Figure()
         blank.update_layout(paper_bgcolor="#0d1117", plot_bgcolor="#0d1117",
                             font=dict(color="#e6edf3"))
-        return blank, empty_wave_fig(), "No file selected", None, None
+        return blank, empty_wave_fig(), empty_hist_fig(), "No file selected", None, None
 
     ev  = load_event(fname)
     lut = {int(pid): i for i, pid in enumerate(ev["pixel_ids"])}
@@ -403,7 +536,7 @@ def load_file(fname):
     pmap = build_pixel_map(ev, lut, all_pids, xs, ys)
     info = f"{fname}  ·  {len(all_pids)} pixels"
 
-    return pmap, empty_wave_fig(), info, fname, None
+    return pmap, empty_wave_fig(), build_hist_fig(ev), info, fname, None
 
 
 # 3. Pixel click: store pixel id
