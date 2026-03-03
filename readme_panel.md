@@ -30,3 +30,14 @@ position, and peak current. **Click a pixel** to load its waveforms in the right
 - **∫ badges:** Numerical time-integral of each waveform, displayed in the top-left corner
   of each subplot. For the pixel signal / induced current this will integrate to the total number
   of electrons seen by the pixel.
+
+## Hit Distributions (bottom panel)
+
+Each hit recorded by the electronics produces a data packet containing a digital value for the integrated
+charge from the analog-to-digital converter. The ADC values can be processed to reproduce the charge and
+the corresponding energy of the hit. These histograms show these values for all hits produced in the event.
+
+- **ADC Values (left):** Recorded charge for each hit digitized by the ADC.
+- **Charge (middle):** Reconstructed charge (ke-) for each hit from converting the ADC values.
+- **Energy (right):** Reconstructed energy (MeV) for each hit from the total charge accounting for recombination
+                    and the ionization potential.
